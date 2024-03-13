@@ -1,17 +1,27 @@
 package org.jetbrains.assignment;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @SpringBootApplication
 @RestController
 public class Application {
+    Connection connection;
+    private ObjectMapper mapper;
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -36,8 +46,25 @@ public class Application {
     // Response:
     // [{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":3},{"x":4,"y":3},{"x":4,"y":-2},{"x":2,"y":-2}]
 
+    public Application() throws SQLException {
+        String jdbcUrl = "jdbc:sqlite:" + new File("db.sqlite").getAbsolutePath();
+
+        connection = DriverManager.getConnection(jdbcUrl);
+
+        // create table for requests with these columns
+        // id - uuid
+        // request - json
+        // response - json
+        // created_at - timestamp
+
+        connection.createStatement().execute("CREATE TABLE IF NOT EXISTS requests (id TEXT PRIMARY KEY, request TEXT, response TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+        mapper = new ObjectMapper();
+    }
+
     @PostMapping("/locations")
-    public List<Location> locations(@RequestBody List<Move> moves) {
+    public List<Location> locations(@RequestBody List<Move> moves) throws JsonProcessingException, SQLException {
+
         int x = 0;
         int y = 0;
         final List<Location> locations = new ArrayList<>();
@@ -52,6 +79,8 @@ public class Application {
             }
             locations.add(new Location(x, y));
         }
+
+        logRequest(moves, locations);
 
         return locations;
     }
@@ -69,7 +98,7 @@ public class Application {
     // [{"direction":"EAST","steps":1},{"direction":"NORTH","steps":3},{"direction":"WEST","steps":1},{"direction":"SOUTH","steps":3}]
 
     @PostMapping("/moves")
-    public List<Move> moves(@RequestBody List<Location> locations) {
+    public List<Move> moves(@RequestBody List<Location> locations) throws SQLException, JsonProcessingException {
         final List<Move> moves = new ArrayList<>();
         Location current = locations.get(0);
         for (int i = 1; i < locations.size(); i++) {
@@ -84,6 +113,18 @@ public class Application {
             }
             current = next;
         }
+
+        logRequest(locations, moves);
+
         return moves;
+    }
+
+    private void logRequest(Object request, Object response) throws SQLException, JsonProcessingException {
+        // insert request and response into the database using a prepared statement!
+        final PreparedStatement stmt = connection.prepareStatement("INSERT INTO requests (id, request, response) VALUES (?, ?, ?)");
+        stmt.setString(1, UUID.randomUUID().toString());
+        stmt.setString(2, mapper.writeValueAsString(request));
+        stmt.setString(3, mapper.writeValueAsString(response));
+        stmt.execute();
     }
 }
