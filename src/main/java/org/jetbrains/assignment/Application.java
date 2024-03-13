@@ -67,4 +67,23 @@ public class Application {
     //
     // Response:
     // [{"direction":"EAST","steps":1},{"direction":"NORTH","steps":3},{"direction":"WEST","steps":1},{"direction":"SOUTH","steps":3}]
+
+    @PostMapping("/moves")
+    public List<Move> moves(@RequestBody List<Location> locations) {
+        final List<Move> moves = new ArrayList<>();
+        Location current = locations.get(0);
+        for (int i = 1; i < locations.size(); i++) {
+            Location next = locations.get(i);
+            int dx = next.x() - current.x();
+            int dy = next.y() - current.y();
+            if (dx != 0) {
+                moves.add(new Move(dx > 0 ? Direction.EAST : Direction.WEST, Math.abs(dx)));
+            }
+            if (dy != 0) {
+                moves.add(new Move(dy > 0 ? Direction.NORTH : Direction.SOUTH, Math.abs(dy)));
+            }
+            current = next;
+        }
+        return moves;
+    }
 }
