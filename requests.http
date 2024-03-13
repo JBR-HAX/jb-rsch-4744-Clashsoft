@@ -1,0 +1,37 @@
+###
+POST http://localhost:8080/moves
+Content-Type: application/json
+
+[
+  {"x": 0, "y": 0},
+  {"x": 4, "y": 0},
+  {"x": 2, "y": 2},
+  {"x": 0, "y": 4}
+]
+
+###
+POST http://localhost:8080/locations
+Content-Type: application/json
+
+[
+  {
+    "direction": "EAST",
+    "steps": 4
+  },
+  {
+    "direction": "WEST",
+    "steps": 2
+  },
+  {
+    "direction": "NORTH",
+    "steps": 2
+  },
+  {
+    "direction": "WEST",
+    "steps": 2
+  },
+  {
+    "direction": "NORTH",
+    "steps": 2
+  }
+]
